@@ -1,0 +1,195 @@
+/* ─── GLOBAL CSS ─── */
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap');
+
+:root {
+  --bg-primary: #050510;
+  --bg-secondary: #0a0a1f;
+  --bg-card: rgba(255, 255, 255, 0.03);
+  --bg-card-hover: rgba(255, 255, 255, 0.07);
+
+  --accent-blue: #00d4ff;
+  --accent-purple: #7c3aed;
+  --accent-violet: #a855f7;
+  --accent-pink: #ec4899;
+  --accent-cyan: #06b6d4;
+
+  --gradient-primary: linear-gradient(135deg, #00d4ff 0%, #7c3aed 50%, #ec4899 100%);
+  --gradient-blue-purple: linear-gradient(135deg, #00d4ff, #7c3aed);
+  --gradient-purple-pink: linear-gradient(135deg, #7c3aed, #ec4899);
+
+  --text-primary: #f0f0ff;
+  --text-secondary: #a0a0c0;
+  --text-muted: #5a5a80;
+
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-glow: rgba(0, 212, 255, 0.3);
+
+  --glow-blue: 0 0 40px rgba(0, 212, 255, 0.15);
+  --glow-purple: 0 0 40px rgba(124, 58, 237, 0.2);
+  --glow-strong: 0 0 60px rgba(0, 212, 255, 0.3), 0 0 120px rgba(124, 58, 237, 0.15);
+
+  --font-display: 'Syne', sans-serif;
+  --font-body: 'Space Grotesk', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+
+  --nav-height: 70px;
+  --section-padding: 120px;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: var(--nav-height);
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(0, 212, 255, 0.25);
+  color: var(--accent-blue);
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--gradient-blue-purple);
+  border-radius: 2px;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  outline: none;
+  font-family: var(--font-body);
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+section {
+  padding: var(--section-padding) 0;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 80px;
+}
+
+.section-label {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent-blue);
+  margin-bottom: 16px;
+  padding: 6px 16px;
+  background: rgba(0, 212, 255, 0.08);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 100px;
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 800;
+  line-height: 1.1;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.section-subtitle {
+  margin-top: 16px;
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Gradient text utility */
+.gradient-text {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Glass card utility */
+.glass-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--radius-lg);
+  transition: var(--transition);
+}
+
+.glass-card:hover {
+  background: var(--bg-card-hover);
+  border-color: rgba(0, 212, 255, 0.2);
+  box-shadow: var(--glow-blue);
+  transform: translateY(-4px);
+}
+
+/* Glow orbs */
+.glow-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  :root {
+    --section-padding: 80px;
+  }
+  .container {
+    padding: 0 16px;
+  }
+  .section-header {
+    margin-bottom: 50px;
+  }
+}
