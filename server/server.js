@@ -16,7 +16,7 @@ app.use(cors());
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.send("Portfolio API Running");
+  res.send("Backend is running successfully 🚀");
 });
 
 app.use("/api/auth", authRoutes);
