@@ -1,8 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { PROJECTS as FALLBACK_PROJECTS, GITHUB_PROFILE_URL } from '../data/projects';
+import { PROJECTS as FALLBACK_PROJECTS } from '../data/projects';
 import { fetchProjects } from '../api/portfolioApi';
 import './Projects.css';
+
+const GITHUB_REPO_BY_SLUG = {
+  'loan-approval-prediction-system':
+    'https://github.com/dikshitbhusal123/Car-Loan-Prediction-USING-MACHINE-LEARNING',
+  'handsign-detection-translation-system':
+    'https://github.com/dikshitbhusal123/sign-language/tree/main/ml',
+  'crm-frontend-development': 'https://github.com/Aryan0883/ConnectSphere',
+};
+
+function getProjectGithubUrl(project) {
+  return project.githubUrl || GITHUB_REPO_BY_SLUG[project.slug] || '#';
+}
 
 function ProjectCard({ project, index }) {
   const cardRef = useRef(null);
@@ -29,7 +41,7 @@ function ProjectCard({ project, index }) {
       <div className="project-banner" style={{ background: project.gradient, borderBottom: `1px solid ${project.borderColor}22` }}>
         <div className="project-icon">{project.icon}</div>
         <div className="project-tags">
-          {project.tags.map((t) => (
+          {(project.tags || []).map((t) => (
             <span key={t} className="project-tag" style={{ borderColor: `${project.borderColor}50`, color: project.borderColor }}>
               {t}
             </span>
@@ -43,7 +55,7 @@ function ProjectCard({ project, index }) {
         <p className="project-desc">{project.description}</p>
 
         <div className="project-highlights">
-          {project.highlights.map((h) => (
+          {(project.highlights || []).map((h) => (
             <div key={h} className="project-highlight">
               <i className="fas fa-check-circle" style={{ color: project.borderColor }} />
               <span>{h}</span>
@@ -52,14 +64,14 @@ function ProjectCard({ project, index }) {
         </div>
 
         <div className="project-tech">
-          {project.tech.map((t) => (
+          {(project.tech || []).map((t) => (
             <span key={t} className="project-tech-badge">{t}</span>
           ))}
         </div>
 
         <div className="project-actions">
           <a
-            href={GITHUB_PROFILE_URL}
+            href={getProjectGithubUrl(project)}
             className="project-btn project-btn--github"
             target="_blank"
             rel="noreferrer"

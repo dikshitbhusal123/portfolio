@@ -135,6 +135,15 @@
   text-align: center;
 }
 
+.footer-contact-list a {
+  color: var(--text-secondary);
+  transition: var(--transition);
+}
+
+.footer-contact-list a:hover {
+  color: var(--accent-blue);
+}
+
 /* Bottom */
 .footer-bottom {
   border-top: 1px solid var(--border-color);

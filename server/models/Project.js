@@ -11,6 +11,7 @@ const projectSchema = new mongoose.Schema(
     gradient: { type: String, default: 'linear-gradient(135deg, #00d4ff22, #7c3aed22)' },
     borderColor: { type: String, default: '#00d4ff' },
     highlights: [String],
+    githubUrl: { type: String, default: '' },
     order: { type: Number, default: 0 },
   },
   { timestamps: true }

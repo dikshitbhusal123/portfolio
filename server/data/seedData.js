@@ -11,6 +11,7 @@ module.exports = {
       gradient: 'linear-gradient(135deg, #00d4ff22, #7c3aed22)',
       borderColor: '#00d4ff',
       highlights: ['Data Preprocessing', 'Supervised & Unsupervised Learning', 'Accuracy Optimization', 'Feature Engineering'],
+      githubUrl: 'https://github.com/dikshitbhusal123/Car-Loan-Prediction-USING-MACHINE-LEARNING',
       order: 0,
     },
     {
@@ -24,6 +25,7 @@ module.exports = {
       gradient: 'linear-gradient(135deg, #7c3aed22, #ec489922)',
       borderColor: '#7c3aed',
       highlights: ['Real-time Detection', 'MediaPipe Integration', 'Deep Learning Model', 'Gesture Translation'],
+      githubUrl: 'https://github.com/dikshitbhusal123/sign-language/tree/main/ml',
       order: 1,
     },
     {
@@ -37,6 +39,7 @@ module.exports = {
       gradient: 'linear-gradient(135deg, #ec489922, #00d4ff22)',
       borderColor: '#ec4899',
       highlights: ['React Components', 'Responsive Design', 'REST API Integration', 'Modern UI/UX'],
+      githubUrl: 'https://github.com/Aryan0883/ConnectSphere',
       order: 2,
     },
   ],

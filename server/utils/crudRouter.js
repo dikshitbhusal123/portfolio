@@ -1,6 +1,11 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const { requireAuth } = require('../middleware/auth');
 const { SANITIZERS, formatMongooseError } = require('./sanitizePayload');
+
+function isValidObjectId(id) {
+  return mongoose.Types.ObjectId.isValid(id) && String(id).length === 24;
+}
 
 function createCrudRouter(Model, { slugField = null, sectionKey } = {}) {
   const router = express.Router();
@@ -20,7 +25,7 @@ function createCrudRouter(Model, { slugField = null, sectionKey } = {}) {
   });
 
   if (slugField) {
-    router.get(`/:${slugField}`, async (req, res) => {
+    router.get(`/slug/:${slugField}`, async (req, res) => {
       try {
         const item = await Model.findOne({ [slugField]: req.params[slugField] }).lean();
         if (!item) return res.status(404).json({ error: 'Not found' });
@@ -42,11 +47,21 @@ function createCrudRouter(Model, { slugField = null, sectionKey } = {}) {
 
   router.put('/:id', requireAuth, async (req, res) => {
     try {
-      const item = await Model.findByIdAndUpdate(req.params.id, sanitize(req.body), {
+      const { id } = req.params;
+      if (!isValidObjectId(id)) {
+        return res.status(400).json({ error: 'Invalid item id. Refresh the page and try Edit again.' });
+      }
+
+      const item = await Model.findByIdAndUpdate(id, sanitize(req.body), {
         new: true,
         runValidators: true,
+        overwrite: false,
       });
-      if (!item) return res.status(404).json({ error: 'Not found' });
+
+      if (!item) {
+        return res.status(404).json({ error: 'Item not found. It may have been deleted.' });
+      }
+
       res.json(item);
     } catch (err) {
       res.status(400).json({ error: formatMongooseError(err) });
@@ -55,7 +70,12 @@ function createCrudRouter(Model, { slugField = null, sectionKey } = {}) {
 
   router.delete('/:id', requireAuth, async (req, res) => {
     try {
-      const item = await Model.findByIdAndDelete(req.params.id);
+      const { id } = req.params;
+      if (!isValidObjectId(id)) {
+        return res.status(400).json({ error: 'Invalid item id.' });
+      }
+
+      const item = await Model.findByIdAndDelete(id);
       if (!item) return res.status(404).json({ error: 'Not found' });
       res.json({ message: 'Deleted' });
     } catch (err) {

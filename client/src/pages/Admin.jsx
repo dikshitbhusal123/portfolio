@@ -15,9 +15,12 @@ import {
   createItem,
   updateItem,
   deleteItem,
+  fetchMessages,
+  markMessageRead,
+  deleteMessage,
 } from '../api/portfolioApi';
 import './Admin.css';
-import { trim, splitCsv, slugify, validateFields } from '../utils/adminFormHelpers';
+import { trim, splitCsv, slugify, validateFields, getItemId, formFieldValue, isValidMongoId } from '../utils/adminFormHelpers';
 
 const SECTIONS = {
   projects: {
@@ -32,6 +35,7 @@ const SECTIONS = {
       { key: 'tech', label: 'Tech (comma separated)', full: true, placeholder: 'React, Node.js' },
       { key: 'tags', label: 'Tags (comma separated)', full: true },
       { key: 'highlights', label: 'Highlights (comma separated)', full: true },
+      { key: 'githubUrl', label: 'GitHub repo URL', full: true, placeholder: 'https://github.com/user/repo' },
       { key: 'order', label: 'Order', type: 'number', placeholder: '0' },
     ],
     listTitle: (item) => item.title,
@@ -46,6 +50,7 @@ const SECTIONS = {
       tech: splitCsv(form.tech),
       tags: splitCsv(form.tags),
       highlights: splitCsv(form.highlights),
+      githubUrl: trim(form.githubUrl),
       order: Number(form.order) || 0,
     }),
     stringify: (item) => ({
@@ -58,6 +63,7 @@ const SECTIONS = {
       tech: (item.tech || []).join(', '),
       tags: (item.tags || []).join(', '),
       highlights: (item.highlights || []).join(', '),
+      githubUrl: item.githubUrl || '',
       order: item.order ?? 0,
     }),
   },
@@ -186,6 +192,98 @@ function emptyForm(section) {
   return base;
 }
 
+function formatMessageDate(dateStr) {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function MessagesInbox({
+  messages,
+  loading,
+  selectedMessageId,
+  selectedMessage,
+  onSelect,
+  onDelete,
+  formatDate,
+}) {
+  return (
+    <div className="admin-messages">
+      <div className="admin-messages-list">
+        <h2 className="admin-messages-title">
+          Contact form inbox
+          {messages.length > 0 && (
+            <span className="admin-messages-count">{messages.length} total</span>
+          )}
+        </h2>
+        {messages.length === 0 && !loading && (
+          <p className="admin-messages-empty">
+            No messages yet. When visitors submit the contact form, they appear here.
+          </p>
+        )}
+        {messages.map((msg) => {
+          const id = getItemId(msg);
+          const preview =
+            msg.message && msg.message.length > 80
+              ? `${msg.message.slice(0, 80)}...`
+              : msg.message;
+          return (
+            <button
+              key={id}
+              type="button"
+              className={`admin-message-item ${selectedMessageId === id ? 'admin-message-item--active' : ''} ${!msg.read ? 'admin-message-item--unread' : ''}`}
+              onClick={() => onSelect(msg)}
+            >
+              <div className="admin-message-item-top">
+                <strong>{msg.name}</strong>
+                {!msg.read && <span className="admin-message-new">New</span>}
+              </div>
+              <span className="admin-message-email">{msg.email}</span>
+              <span className="admin-message-preview">{preview}</span>
+              <span className="admin-message-date">{formatDate(msg.createdAt)}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="admin-message-detail admin-form-card">
+        {selectedMessage ? (
+          <>
+            <h2>Message from {selectedMessage.name}</h2>
+            <p className="admin-message-detail-meta">
+              <a href={`mailto:${selectedMessage.email}`}>{selectedMessage.email}</a>
+            </p>
+            <p className="admin-message-detail-meta">{formatDate(selectedMessage.createdAt)}</p>
+            <div className="admin-message-body">{selectedMessage.message}</div>
+            <div className="admin-form-actions">
+              <a
+                href={`mailto:${selectedMessage.email}?subject=Re: Portfolio contact`}
+                className="admin-btn admin-btn--primary"
+              >
+                Reply by email
+              </a>
+              <button
+                type="button"
+                className="admin-btn admin-btn--danger"
+                onClick={() => onDelete(getItemId(selectedMessage))}
+              >
+                Delete
+              </button>
+            </div>
+          </>
+        ) : (
+          <p className="admin-messages-empty">Select a message from the list to read it.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Admin() {
   const [authed, setAuthed] = useState(isLoggedIn());
   const [authMode, setAuthMode] = useState('login');
@@ -200,10 +298,14 @@ export default function Admin() {
   const [error, setError] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm('projects'));
+  const [messages, setMessages] = useState([]);
+  const [selectedMessageId, setSelectedMessageId] = useState(null);
 
+  const isMessagesTab = tab === 'messages';
   const section = SECTIONS[tab];
 
   const loadItems = async () => {
+    if (!FETCHERS[tab]) return;
     setLoading(true);
     setError('');
     try {
@@ -216,9 +318,56 @@ export default function Admin() {
     }
   };
 
+  const loadMessages = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const data = await fetchMessages();
+      setMessages(data);
+      if (selectedMessageId && !data.find((m) => getItemId(m) === selectedMessageId)) {
+        setSelectedMessageId(null);
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (authed) loadItems();
+    if (!authed) return;
+    if (isMessagesTab) loadMessages();
+    else loadItems();
   }, [authed, tab]);
+
+  const unreadCount = messages.filter((m) => !m.read).length;
+  const selectedMessage = messages.find((m) => getItemId(m) === selectedMessageId);
+
+  const handleSelectMessage = async (msg) => {
+    const id = getItemId(msg);
+    setSelectedMessageId(id);
+    if (!msg.read && id) {
+      try {
+        await markMessageRead(id);
+        setMessages((prev) =>
+          prev.map((m) => (getItemId(m) === id ? { ...m, read: true } : m))
+        );
+      } catch {
+        // still show message even if mark-read fails
+      }
+    }
+  };
+
+  const handleDeleteMessage = async (id) => {
+    if (!window.confirm('Delete this message?')) return;
+    try {
+      await deleteMessage(id);
+      if (selectedMessageId === id) setSelectedMessageId(null);
+      await loadMessages();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
   const completeAuth = (token, name) => {
     setToken(token);
@@ -264,7 +413,8 @@ export default function Admin() {
     setAuthed(false);
     setAdminName('');
     setEditingId(null);
-    setForm(emptyForm(tab));
+    setForm(emptyForm(tab in SECTIONS ? tab : 'projects'));
+    setSelectedMessageId(null);
   };
 
   const startNew = () => {
@@ -273,14 +423,25 @@ export default function Admin() {
   };
 
   const startEdit = (item) => {
-    setEditingId(item._id);
+    const id = getItemId(item);
+    if (!id) {
+      setError('Cannot edit this item (missing id). Refresh the page and try again.');
+      return;
+    }
+    setEditingId(id);
     setForm(section.stringify(item));
+    setError('');
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this item?')) return;
+    const itemId = String(id);
+    if (!itemId) {
+      setError('Cannot delete this item (missing id).');
+      return;
+    }
     try {
-      await deleteItem(tab, id);
+      await deleteItem(tab, itemId);
       await loadItems();
       if (editingId === id) startNew();
     } catch (err) {
@@ -290,6 +451,7 @@ export default function Admin() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isMessagesTab || !section) return;
     setError('');
 
     const validationMessage = validateFields(form, section.fields);
@@ -301,6 +463,10 @@ export default function Admin() {
     try {
       const body = section.parse(form);
       if (editingId) {
+        if (!isValidMongoId(String(editingId))) {
+          setError('Invalid item id. Refresh the page and click Edit again.');
+          return;
+        }
         await updateItem(tab, editingId, body);
       } else {
         await createItem(tab, body);
@@ -452,19 +618,44 @@ export default function Admin() {
                 setTab(key);
                 setEditingId(null);
                 setForm(emptyForm(key));
+                setSelectedMessageId(null);
               }}
             >
               {cfg.label}
             </button>
           ))}
+          <button
+            type="button"
+            className={`admin-tab ${isMessagesTab ? 'admin-tab--active' : ''}`}
+            onClick={() => {
+              setTab('messages');
+              setEditingId(null);
+              setSelectedMessageId(null);
+            }}
+          >
+            Messages
+            {unreadCount > 0 && <span className="admin-tab-badge">{unreadCount}</span>}
+          </button>
         </div>
 
         {error && <p className="admin-error">{error}</p>}
         {loading && <p style={{ color: 'var(--text-muted)', marginBottom: 16 }}>Loading…</p>}
 
+        {isMessagesTab ? (
+          <MessagesInbox
+            messages={messages}
+            loading={loading}
+            selectedMessageId={selectedMessageId}
+            selectedMessage={selectedMessage}
+            onSelect={handleSelectMessage}
+            onDelete={handleDeleteMessage}
+            formatDate={formatMessageDate}
+          />
+        ) : section ? (
+        <>
         <div className="admin-list">
           {items.map((item) => (
-            <div key={item._id} className="admin-list-item">
+            <div key={getItemId(item) || item.slug || item.title} className="admin-list-item">
               <div>
                 <h3>{section.listTitle(item)}</h3>
                 <p>{section.listSub(item)}</p>
@@ -473,7 +664,7 @@ export default function Admin() {
                 <button type="button" className="admin-btn admin-btn--ghost" onClick={() => startEdit(item)}>
                   Edit
                 </button>
-                <button type="button" className="admin-btn admin-btn--danger" onClick={() => handleDelete(item._id)}>
+                <button type="button" className="admin-btn admin-btn--danger" onClick={() => handleDelete(getItemId(item))}>
                   Delete
                 </button>
               </div>
@@ -497,7 +688,7 @@ export default function Admin() {
                   {field.type === 'textarea' ? (
                     <textarea
                       id={field.key}
-                      value={form[field.key]}
+                      value={formFieldValue(form, field)}
                       onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
                       placeholder={field.placeholder}
                       required={Boolean(field.required)}
@@ -507,7 +698,7 @@ export default function Admin() {
                       <input
                         id={field.key}
                         type="checkbox"
-                        checked={Boolean(form[field.key])}
+                        checked={formFieldValue(form, field)}
                         onChange={(e) => setForm({ ...form, [field.key]: e.target.checked })}
                       />
                       <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
@@ -518,7 +709,7 @@ export default function Admin() {
                     <input
                       id={field.key}
                       type={field.type || 'text'}
-                      value={form[field.key]}
+                      value={formFieldValue(form, field)}
                       onChange={(e) => setForm({ ...form, [field.key]: e.target.value })}
                       placeholder={field.placeholder}
                       required={Boolean(field.required)}
@@ -539,6 +730,8 @@ export default function Admin() {
             </div>
           </form>
         </div>
+        </>
+        ) : null}
       </div>
     </div>
   );

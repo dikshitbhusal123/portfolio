@@ -1,5 +1,14 @@
 function trim(value) {
-  return typeof value === 'string' ? value.trim() : value;
+  if (value == null) return '';
+  return String(value).trim();
+}
+
+function splitCsv(value) {
+  if (!value) return [];
+  return String(value)
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 const SANITIZERS = {
@@ -11,9 +20,10 @@ const SANITIZERS = {
     gradient:
       trim(body.gradient) || 'linear-gradient(135deg, #00d4ff22, #7c3aed22)',
     borderColor: trim(body.borderColor) || '#00d4ff',
-    tech: Array.isArray(body.tech) ? body.tech : [],
-    tags: Array.isArray(body.tags) ? body.tags : [],
-    highlights: Array.isArray(body.highlights) ? body.highlights : [],
+    tech: Array.isArray(body.tech) ? body.tech : splitCsv(body.tech),
+    tags: Array.isArray(body.tags) ? body.tags : splitCsv(body.tags),
+    highlights: Array.isArray(body.highlights) ? body.highlights : splitCsv(body.highlights),
+    githubUrl: trim(body.githubUrl),
     order: Number(body.order) || 0,
   }),
   education: (body) => ({
@@ -56,10 +66,13 @@ function formatMongooseError(err) {
       .map((e) => e.message)
       .join(' ');
   }
+  if (err.name === 'CastError') {
+    return 'Invalid data format. Check all fields and try again.';
+  }
   if (err.code === 11000) {
     return 'This entry already exists (duplicate slug or unique field).';
   }
   return err.message;
 }
 
-module.exports = { SANITIZERS, formatMongooseError };
+module.exports = { SANITIZERS, formatMongooseError, trim, splitCsv };

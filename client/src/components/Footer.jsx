@@ -58,7 +58,11 @@ export default function Footer() {
             <ul className="footer-contact-list">
               <li>
                 <i className="fas fa-envelope" />
-                <span>dikshitbhusal@email.com</span>
+                <a href="mailto:dikshitbhusal@email.com">dikshitbhusal@email.com</a>
+              </li>
+              <li>
+                <i className="fas fa-phone" />
+                <a href="tel:+919108434206">+91 9108434206</a>
               </li>
               <li>
                 <i className="fas fa-map-marker-alt" />

@@ -4,6 +4,7 @@ const cors = require("cors");
 require("dotenv").config();
 
 const authRoutes = require("./routes/auth");
+const messageRoutes = require("./routes/messages");
 const createCrudRouter = require("./utils/crudRouter");
 const Project = require("./models/Project");
 const Education = require("./models/Education");
@@ -20,6 +21,7 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/messages", messageRoutes);
 app.use("/api/projects", createCrudRouter(Project, { slugField: "slug", sectionKey: "projects" }));
 app.use("/api/education", createCrudRouter(Education, { sectionKey: "education" }));
 app.use("/api/certifications", createCrudRouter(Certification, { sectionKey: "certifications" }));

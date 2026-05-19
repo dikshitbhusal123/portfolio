@@ -17,6 +17,23 @@ export function slugify(text) {
     .replace(/^-+|-+$/g, '');
 }
 
+export function getItemId(item) {
+  if (!item) return '';
+  const id = item._id ?? item.id;
+  return id ? String(id) : '';
+}
+
+export function isValidMongoId(id) {
+  return typeof id === 'string' && /^[a-f\d]{24}$/i.test(id);
+}
+
+export function formFieldValue(form, field) {
+  const value = form[field.key];
+  if (field.type === 'checkbox') return Boolean(value);
+  if (field.type === 'number') return value === '' || value == null ? '' : String(value);
+  return value ?? '';
+}
+
 export function validateFields(form, fields) {
   const missing = fields
     .filter((f) => f.required)

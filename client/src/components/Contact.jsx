@@ -1,5 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { submitContactMessage } from '../api/portfolioApi';
 import './Contact.css';
+
+const PHONE = '+91 9108434206';
+const PHONE_TEL = 'tel:+919108434206';
 
 const CONTACT_INFO = [
   {
@@ -12,8 +16,8 @@ const CONTACT_INFO = [
   {
     icon: 'fas fa-phone',
     label: 'Phone',
-    value: '+91 XXXXX XXXXX',
-    href: 'tel:+91XXXXXXXXXX',
+    value: PHONE,
+    href: PHONE_TEL,
     color: '#7c3aed',
   },
   {
@@ -26,25 +30,48 @@ const CONTACT_INFO = [
 ];
 
 export default function Contact() {
+  const sectionRef = useRef(null);
   const [form, setForm] = useState({ name: '', email: '', message: '' });
   const [status, setStatus] = useState('idle'); // idle | loading | success | error
+  const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) e.target.classList.add('visible');
+        });
+      },
+      { threshold: 0.15 }
+    );
+    const els = sectionRef.current?.querySelectorAll('.anim-reveal');
+    els?.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
 
   const handleChange = (e) => {
     setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus('loading');
-    setTimeout(() => {
+    setErrorMsg('');
+
+    try {
+      await submitContactMessage(form);
       setStatus('success');
       setForm({ name: '', email: '', message: '' });
       setTimeout(() => setStatus('idle'), 4000);
-    }, 1500);
+    } catch (err) {
+      setStatus('error');
+      setErrorMsg(err.message);
+      setTimeout(() => setStatus('idle'), 5000);
+    }
   };
 
   return (
-    <section id="contact" className="contact">
+    <section id="contact" className="contact" ref={sectionRef}>
       <div className="container">
         <div className="section-header anim-reveal">
           <span className="section-label">Contact</span>
@@ -52,6 +79,10 @@ export default function Contact() {
           <p className="section-subtitle">
             Have an idea, opportunity, or just want to say hi? I'd love to hear from you.
           </p>
+          <a href={PHONE_TEL} className="contact-phone-banner">
+            <i className="fas fa-phone" />
+            {PHONE}
+          </a>
         </div>
 
         <div className="contact-grid">
@@ -134,14 +165,17 @@ export default function Contact() {
                 />
               </div>
 
+              {errorMsg && <p className="form-error">{errorMsg}</p>}
+
               <button
                 type="submit"
-                className={`form-submit ${status === 'loading' ? 'form-submit--loading' : ''} ${status === 'success' ? 'form-submit--success' : ''}`}
+                className={`form-submit ${status === 'loading' ? 'form-submit--loading' : ''} ${status === 'success' ? 'form-submit--success' : ''} ${status === 'error' ? 'form-submit--error' : ''}`}
                 disabled={status === 'loading'}
               >
                 {status === 'idle' && <><i className="fas fa-paper-plane" /> Send Message</>}
                 {status === 'loading' && <><i className="fas fa-spinner fa-spin" /> Sending...</>}
                 {status === 'success' && <><i className="fas fa-check" /> Message Sent!</>}
+                {status === 'error' && <><i className="fas fa-exclamation-circle" /> Try Again</>}
               </button>
             </form>
           </div>
