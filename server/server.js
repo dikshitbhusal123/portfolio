@@ -33,13 +33,66 @@ const Achievement = require("./models/Achievement");
 const app = express();
 
 /* =========================
-   MIDDLEWARE
+   CORS — configurable for Vercel / multiple frontends
+   Set on Render:
+   - CORS_ORIGINS=https://your-prod.vercel.app,https://your-preview.vercel.app
+   - CORS_ALLOW_VERCEL_PREVIEWS=true (optional: any https host ending .vercel.app)
 ========================= */
+
+function getCorsAllowedOrigins() {
+  const fromEnv = process.env.CORS_ORIGINS || "";
+  const extras = fromEnv.split(",").map((s) => s.trim()).filter(Boolean);
+
+  const defaults = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+  ];
+
+  if (!extras.length) {
+    extras.push("https://portfolio-beta-hazel-94.vercel.app");
+  }
+
+  return [...new Set([...defaults, ...extras])];
+}
+
+const corsAllowedOrigins = getCorsAllowedOrigins();
+
+function isHttpsVercelAppOrigin(origin) {
+  try {
+    const u = new URL(origin);
+    return u.protocol === "https:" && u.hostname.endsWith(".vercel.app");
+  } catch {
+    return false;
+  }
+}
 
 app.use(
   cors({
-    origin: "https://portfolio-beta-hazel-94.vercel.app",
+    origin(origin, callback) {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      if (corsAllowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      const allowPreview =
+        String(process.env.CORS_ALLOW_VERCEL_PREVIEWS || "").toLowerCase() ===
+        "true";
+      if (allowPreview && isHttpsVercelAppOrigin(origin)) {
+        callback(null, true);
+        return;
+      }
+      console.warn(`[cors] blocked origin: ${origin}`);
+      callback(null, false);
+    },
     credentials: true,
+    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    optionsSuccessStatus: 204,
   })
 );
 
@@ -58,6 +111,7 @@ app.get("/", (req, res) => {
 ========================= */
 
 app.use("/auth", authRoutes);
+app.use("/api/auth", authRoutes);
 
 /* =========================
    API ROUTES
@@ -95,46 +149,49 @@ app.use(
 );
 
 /* =========================
-   DATABASE CONNECTION
-========================= */
-
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log("MongoDB Connected");
-  })
-  .catch((err) => {
-    console.log("MongoDB Error:", err);
-  });
-
-/* =========================
-   SERVER PORT
+   DATABASE + SERVER START
+   Connect before listen so inserts are not buffered on a dead connection.
 ========================= */
 
 const PORT = process.env.PORT || 5001;
 
-/* =========================
-   START SERVER
-========================= */
-
-const server = app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-
-/* =========================
-   PORT ERROR HANDLER
-========================= */
-
-server.on("error", (err) => {
-  if (err.code === "EADDRINUSE") {
-    console.error(
-      `Port ${PORT} is already in use.
-Set PORT=5001 in server/.env
-(macOS often uses 5000 for AirPlay Receiver).`
-    );
-  } else {
-    console.error(err);
+async function start() {
+  const uri = process.env.MONGO_URI?.trim();
+  if (!uri) {
+    console.error("MONGO_URI is missing. Set it in server/.env (local) or Render env.");
+    process.exit(1);
   }
 
-  process.exit(1);
-});
+  try {
+    await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 15_000,
+    });
+    console.log("MongoDB connected");
+  } catch (err) {
+    console.error("MongoDB connection failed:", err.message);
+    console.error(
+      "Check MONGO_URI, Atlas cluster is running, and Network Access allows your host (e.g. 0.0.0.0/0 for Render)."
+    );
+    process.exit(1);
+  }
+
+  const server = app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+
+  server.on("error", (err) => {
+    if (err.code === "EADDRINUSE") {
+      console.error(
+        `Port ${PORT} is already in use.
+Set PORT=5001 in server/.env
+(macOS often uses 5000 for AirPlay Receiver).`
+      );
+    } else {
+      console.error(err);
+    }
+
+    process.exit(1);
+  });
+}
+
+start();

@@ -61,6 +61,8 @@ const SANITIZERS = {
 };
 
 function formatMongooseError(err) {
+  const msg = err?.message || '';
+
   if (err.name === 'ValidationError') {
     return Object.values(err.errors)
       .map((e) => e.message)
@@ -72,7 +74,13 @@ function formatMongooseError(err) {
   if (err.code === 11000) {
     return 'This entry already exists (duplicate slug or unique field).';
   }
-  return err.message;
+  if (/buffering timed out/i.test(msg) || /timed out.*serverSelectionTimeoutMS/i.test(msg)) {
+    return (
+      'Database is not reachable. If you use MongoDB Atlas, open Network Access to allow this server ' +
+      '(e.g. add 0.0.0.0/0 for cloud hosts like Render) and confirm MONGO_URI is correct.'
+    );
+  }
+  return err?.message || 'Something went wrong.';
 }
 
 module.exports = { SANITIZERS, formatMongooseError, trim, splitCsv };
