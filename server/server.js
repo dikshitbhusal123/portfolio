@@ -33,66 +33,13 @@ const Achievement = require("./models/Achievement");
 const app = express();
 
 /* =========================
-   CORS — configurable for Vercel / multiple frontends
-   Set on Render:
-   - CORS_ORIGINS=https://your-prod.vercel.app,https://your-preview.vercel.app
-   - CORS_ALLOW_VERCEL_PREVIEWS=true (optional: any https host ending .vercel.app)
+   CORS — reflect request Origin (works with localhost, Vercel previews, production)
 ========================= */
-
-function getCorsAllowedOrigins() {
-  const fromEnv = process.env.CORS_ORIGINS || "";
-  const extras = fromEnv.split(",").map((s) => s.trim()).filter(Boolean);
-
-  const defaults = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-  ];
-
-  if (!extras.length) {
-    extras.push("https://portfolio-beta-hazel-94.vercel.app");
-  }
-
-  return [...new Set([...defaults, ...extras])];
-}
-
-const corsAllowedOrigins = getCorsAllowedOrigins();
-
-function isHttpsVercelAppOrigin(origin) {
-  try {
-    const u = new URL(origin);
-    return u.protocol === "https:" && u.hostname.endsWith(".vercel.app");
-  } catch {
-    return false;
-  }
-}
 
 app.use(
   cors({
-    origin(origin, callback) {
-      if (!origin) {
-        callback(null, true);
-        return;
-      }
-      if (corsAllowedOrigins.includes(origin)) {
-        callback(null, true);
-        return;
-      }
-      const allowPreview =
-        String(process.env.CORS_ALLOW_VERCEL_PREVIEWS || "").toLowerCase() ===
-        "true";
-      if (allowPreview && isHttpsVercelAppOrigin(origin)) {
-        callback(null, true);
-        return;
-      }
-      console.warn(`[cors] blocked origin: ${origin}`);
-      callback(null, false);
-    },
+    origin: true,
     credentials: true,
-    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    optionsSuccessStatus: 204,
   })
 );
 
